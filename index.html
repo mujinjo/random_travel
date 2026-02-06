@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>복불복 즉흥 여행! 랜덤 좌표 생성기</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { font-family: 'Pretendard', sans-serif; background-color: #f0f2f5; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 20px; }
+        .header { text-align: center; margin-bottom: 20px; }
+        h1 { color: #1e3a8a; font-size: 2.5rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.1); }
+        
+        #map { width: 100%; max-width: 800px; height: 600px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); border: 5px solid white; }
+        
+        .ui-panel { margin-top: 20px; text-align: center; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        .result-box { font-size: 1.2rem; font-weight: bold; margin-bottom: 15px; color: #d32f2f; min-height: 1.5em; }
+        
+        button { background-color: #1e3a8a; color: white; border: none; padding: 15px 30px; font-size: 1.2rem; font-weight: bold; border-radius: 50px; cursor: pointer; transition: 0.3s; width: 100%; }
+        button:hover { background-color: #2563eb; transform: scale(1.05); }
+        button:active { transform: scale(0.95); }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🎲 복불복 즉흥 여행!</h1>
+    <p>버튼을 누르면 전국 어디든 랜덤으로 목적지를 정해줍니다.</p>
+</div>
+
+<div id="map"></div>
+
+<div class="ui-panel">
+    <div id="result" class="result-box">준비되셨나요?</div>
+    <button onclick="pickRandomLocation()">📍 목적지 뽑기!</button>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // 1. 지도 초기화 (대한민국 중심부)
+    var map = L.map('map').setView([36.3504, 127.3845], 7);
+
+    // 2. 지도 배경 설정 (OpenStreetMap)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    var currentMarker = null;
+
+    // 3. 남한 범위 (위도: 34.0 ~ 38.3, 경도: 126.0 ~ 129.5)
+    function pickRandomLocation() {
+        const minLat = 34.2, maxLat = 38.0;
+        const minLng = 126.2, maxLng = 129.3;
+
+        const randomLat = (Math.random() * (maxLat - minLat) + minLat).toFixed(6);
+        const randomLng = (Math.random() * (maxLng - minLng) + minLng).toFixed(6);
+
+        // 이전 마커 제거
+        if (currentMarker) {
+            map.removeLayer(currentMarker);
+        }
+
+        // 새 마커 추가 및 이동
+        currentMarker = L.marker([randomLat, randomLng]).addTo(map);
+        map.flyTo([randomLat, randomLng], 12); // 해당 위치로 줌인
+
+        // 결과 텍스트 표시
+        document.getElementById('result').innerText = `결정된 좌표: ${randomLat}, ${randomLng}`;
+        
+        // 역지오코딩 (위치 이름 찾기) - 오픈 API 사용
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${randomLat}&lon=${randomLng}`)
+            .then(response => response.json())
+            .then(data => {
+                const address = data.display_name.split(',').reverse().slice(1, 4).join(' ');
+                document.getElementById('result').innerHTML = `📍 목적지: <br>${address || "알 수 없는 지역 (산간/바다)"}`;
+                currentMarker.bindPopup(`<b>여기로 가세요!</b><br>${address}`).openPopup();
+            })
+            .catch(() => {
+                document.getElementById('result').innerText = `좌표: ${randomLat}, ${randomLng}`;
+            });
+    }
+</script>
+
+</body>
+</html>
