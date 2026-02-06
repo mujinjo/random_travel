@@ -8,81 +8,75 @@
     <style>
         body { font-family: 'Pretendard', sans-serif; background-color: #f0f2f5; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 20px; }
         .header { text-align: center; margin-bottom: 20px; }
-        h1 { color: #1e3a8a; font-size: 2.2rem; margin-bottom: 5px; }
+        h1 { color: #1e3a8a; font-size: 2.5rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.1); }
         
-        #map { width: 100%; max-width: 800px; height: 550px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); border: 5px solid white; }
+        #map { width: 100%; max-width: 800px; height: 600px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); border: 5px solid white; }
         
         .ui-panel { margin-top: 20px; text-align: center; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
-        .result-box { font-size: 1.1rem; font-weight: bold; margin-bottom: 15px; color: #d32f2f; min-height: 3em; display: flex; align-items: center; justify-content: center; }
+        .result-box { font-size: 1.2rem; font-weight: bold; margin-bottom: 15px; color: #d32f2f; min-height: 1.5em; }
         
-        button { background-color: #1e3a8a; color: white; border: none; padding: 15px 30px; font-size: 1.2rem; font-weight: bold; border-radius: 50px; cursor: pointer; transition: 0.3s; width: 100%; box-shadow: 0 4px 0 #0f1d45; }
-        button:hover { background-color: #2563eb; transform: translateY(-2px); box-shadow: 0 6px 0 #0f1d45; }
-        button:active { transform: translateY(2px); box-shadow: 0 2px 0 #0f1d45; }
+        button { background-color: #1e3a8a; color: white; border: none; padding: 15px 30px; font-size: 1.2rem; font-weight: bold; border-radius: 50px; cursor: pointer; transition: 0.3s; width: 100%; }
+        button:hover { background-color: #2563eb; transform: scale(1.05); }
+        button:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
 
 <div class="header">
     <h1>🎲 복불복 즉흥 여행!</h1>
-    <p>전체 지도에서 운명의 목적지를 찾아갑니다.</p>
+    <p>버튼을 누르면 전국 어디든 랜덤으로 목적지를 정해줍니다.</p>
 </div>
 
 <div id="map"></div>
 
 <div class="ui-panel">
-    <div id="result" class="result-box">어디로 가게 될까요?</div>
-    <button onclick="startRandomTravel()">📍 운명의 점 찍기!</button>
+    <div id="result" class="result-box">준비되셨나요?</div>
+    <button onclick="pickRandomLocation()">📍 목적지 뽑기!</button>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    // 1. 지도 초기화 (최초에는 한국 전체가 보이도록 줌 레벨 조정)
-    var map = L.map('map').setView([36.1, 127.8], 7);
+    // 1. 지도 초기화 (대한민국 중심부)
+    var map = L.map('map').setView([36.3504, 127.3845], 7);
 
+    // 2. 지도 배경 설정 (OpenStreetMap)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
     var currentMarker = null;
 
-    function startRandomTravel() {
-        // 버튼 클릭 시 먼저 전체 지도로 줌아웃 (시각적 효과 극대화)
-        map.flyTo([36.1, 127.8], 7, { duration: 0.5 });
+    // 3. 남한 범위 (위도: 34.0 ~ 38.3, 경도: 126.0 ~ 129.5)
+    function pickRandomLocation() {
+        const minLat = 34.2, maxLat = 38.0;
+        const minLng = 126.2, maxLng = 129.3;
 
-        // 잠시 대기 후 좌표 생성 및 줌인
-        setTimeout(() => {
-            const minLat = 34.5, maxLat = 37.8;
-            const minLng = 126.5, maxLng = 129.2;
+        const randomLat = (Math.random() * (maxLat - minLat) + minLat).toFixed(6);
+        const randomLng = (Math.random() * (maxLng - minLng) + minLng).toFixed(6);
 
-            const randomLat = (Math.random() * (maxLat - minLat) + minLat).toFixed(6);
-            const randomLng = (Math.random() * (maxLng - minLng) + minLng).toFixed(6);
+        // 이전 마커 제거
+        if (currentMarker) {
+            map.removeLayer(currentMarker);
+        }
 
-            if (currentMarker) map.removeLayer(currentMarker);
+        // 새 마커 추가 및 이동
+        currentMarker = L.marker([randomLat, randomLng]).addTo(map);
+        map.flyTo([randomLat, randomLng], 12); // 해당 위치로 줌인
 
-            // 마커 생성
-            currentMarker = L.marker([randomLat, randomLng]).addTo(map);
-
-            // [핵심] flyTo를 이용한 드라마틱한 확대 연출
-            map.flyTo([randomLat, randomLng], 14, {
-                animate: True,
-                duration: 2.5, // 2.5초 동안 비행하듯 이동
-                easeLinearity: 0.25
+        // 결과 텍스트 표시
+        document.getElementById('result').innerText = `결정된 좌표: ${randomLat}, ${randomLng}`;
+        
+        // 역지오코딩 (위치 이름 찾기) - 오픈 API 사용
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${randomLat}&lon=${randomLng}`)
+            .then(response => response.json())
+            .then(data => {
+                const address = data.display_name.split(',').reverse().slice(1, 4).join(' ');
+                document.getElementById('result').innerHTML = `📍 목적지: <br>${address || "알 수 없는 지역 (산간/바다)"}`;
+                currentMarker.bindPopup(`<b>여기로 가세요!</b><br>${address}`).openPopup();
+            })
+            .catch(() => {
+                document.getElementById('result').innerText = `좌표: ${randomLat}, ${randomLng}`;
             });
-
-            document.getElementById('result').innerText = "분석 중...";
-
-            // 주소 변환
-            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${randomLat}&lon=${randomLng}`)
-                .then(res => res.json())
-                .then(data => {
-                    const addr = data.display_name.split(',').reverse().slice(1, 4).join(' ');
-                    document.getElementById('result').innerHTML = `🎯 목적지 결정!<br><span style="color:#1e3a8a">${addr || "산간 또는 오지"}</span>`;
-                    currentMarker.bindPopup(`<b>여기로 떠나세요!</b><br>${addr}`).openPopup();
-                })
-                .catch(() => {
-                    document.getElementById('result').innerText = `좌표: ${randomLat}, ${randomLng}`;
-                });
-        }, 600);
     }
 </script>
 
